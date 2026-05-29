@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import random
 
-
 class GuessNumberPro:
     def __init__(self, root):
         self.root = root
@@ -41,7 +40,7 @@ class GuessNumberPro:
         self.level = ttk.Combobox(
             level_frame,
             state="readonly",
-            width=10
+            width=15
         )
 
         self.level["values"] = (
@@ -52,8 +51,11 @@ class GuessNumberPro:
 
         self.level.current(1)
         self.level.pack(side=tk.LEFT, padx=5)
-        self.level.bind("<<ComboboxSelected>>",
-                        lambda e: self.start_game())
+
+        self.level.bind(
+            "<<ComboboxSelected>>",
+            lambda e: self.start_game()
+        )
 
         self.info_label = tk.Label(
             self.root,
@@ -71,6 +73,7 @@ class GuessNumberPro:
             width=10
         )
         self.entry.pack(pady=10)
+
         self.entry.bind("<Return>", lambda e: self.check())
 
         self.guess_btn = tk.Button(
@@ -121,24 +124,22 @@ class GuessNumberPro:
 
     def start_game(self):
 
-        difficulty = self.level.get()
+        difficulty_map = {
+            "簡單(1-50)": 50,
+            "普通(1-100)": 100,
+            "困難(1-500)": 500
+        }
 
-        if "50" in difficulty:
-            self.max_num = 50
-        elif "500" in difficulty:
-            self.max_num = 500
-        else:
-            self.max_num = 100
-
+        self.max_num = difficulty_map[self.level.get()]
         self.answer = random.randint(1, self.max_num)
 
         self.attempts = 0
         self.max_attempts = 10
-
         self.progress["value"] = 0
 
         self.result_label.config(text="")
         self.entry.delete(0, tk.END)
+        self.entry.focus()
 
         self.info_label.config(
             text=f"請猜 1 ~ {self.max_num}"
@@ -148,11 +149,13 @@ class GuessNumberPro:
 
     def update_stats(self):
 
-        best = "-" if self.best_score is None else str(self.best_score)
+        best = "-"
+        if self.best_score is not None:
+            best = str(self.best_score)
 
         self.stats_label.config(
             text=(
-                f"剩餘機會：{self.max_attempts-self.attempts}   "
+                f"剩餘機會：{self.max_attempts - self.attempts}    "
                 f"最佳紀錄：{best} 次"
             )
         )
@@ -161,20 +164,32 @@ class GuessNumberPro:
 
         try:
             guess = int(self.entry.get())
-
         except ValueError:
-            messagebox.showwarning("錯誤", "請輸入數字")
+            messagebox.showwarning(
+                "輸入錯誤",
+                "請輸入數字"
+            )
+            return
+
+        if guess < 1 or guess > self.max_num:
+            messagebox.showwarning(
+                "超出範圍",
+                f"請輸入 1 ~ {self.max_num} 之間的數字"
+            )
             return
 
         self.attempts += 1
         self.progress["value"] = self.attempts
 
-        if guess < self.answer:
-            self.result_label.config(text="⬆ 太小了")
-        elif guess > self.answer:
-            self.result_label.config(text="⬇ 太大了")
+        if guess > self.answer:
+            self.result_label.config(
+                text="⬇ 太大了，再小一點"
+            )
+        elif guess < self.answer:
+            self.result_label.config(
+                text="⬆ 太小了，再大一點"
+            )
         else:
-
             if self.best_score is None:
                 self.best_score = self.attempts
             else:
@@ -184,8 +199,10 @@ class GuessNumberPro:
                 )
 
             messagebox.showinfo(
-                "恭喜",
-                f"🎉 猜中了！\n\n答案：{self.answer}\n使用 {self.attempts} 次"
+                "恭喜過關",
+                f"🎉 猜中了！\n\n"
+                f"答案是：{self.answer}\n"
+                f"共用了 {self.attempts} 次"
             )
 
             self.start_game()
@@ -194,13 +211,15 @@ class GuessNumberPro:
         if self.attempts >= self.max_attempts:
             messagebox.showerror(
                 "遊戲結束",
-                f"😢 沒有機會了\n正確答案是：{self.answer}"
+                f"😢 機會用完了\n\n"
+                f"正確答案是：{self.answer}"
             )
             self.start_game()
             return
 
         self.update_stats()
         self.entry.delete(0, tk.END)
+        self.entry.focus()
 
 
 root = tk.Tk()
